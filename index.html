@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lembrete da Dani</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff0f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      color: #c71585;
+    }
+
+    .dias label {
+      display: block;
+      margin: 10px 0;
+      text-align: left;
+    }
+
+    input[type="time"] {
+      margin-left: 10px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #c71585;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .mensagem {
+      margin-top: 20px;
+      color: #008000;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Lembrete da Dani</h1>
+
+    <form id="form">
+      <p>Escolha os horários para lembrar de tomar o remédio:</p>
+      <div class="dias">
+        <label>Segunda-feira: <input type="time" name="segunda"></label>
+        <label>Terça-feira: <input type="time" name="terca"></label>
+        <label>Quarta-feira: <input type="time" name="quarta"></label>
+        <label>Quinta-feira: <input type="time" name="quinta"></label>
+        <label>Sexta-feira: <input type="time" name="sexta"></label>
+        <label>Sábado: <input type="time" name="sabado"></label>
+        <label>Domingo: <input type="time" name="domingo"></label>
+      </div>
+      <button type="submit">Salvar lembretes</button>
+    </form>
+
+    <div id="mensagem" class="mensagem"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const mensagem = document.getElementById('mensagem');
+
+    const frases = [
+      "Parabéns! Sei que você está cuidando de mim ❤",
+      "Você é muito linda por se cuidar! 💕",
+      "Tenho muito orgulho de você 💖",
+      "Te amo! Continue firme 💪",
+      "Cuidar de si também é um ato de amor 💗"
+    ];
+
+    const salvarHorarios = (dados) => {
+      localStorage.setItem('lembretes', JSON.stringify(dados));
+    };
+
+    const carregarHorarios = () => {
+      return JSON.parse(localStorage.getItem('lembretes')) || {};
+    };
+
+    const pedirPermissao = async () => {
+      if (Notification.permission !== 'granted') {
+        await Notification.requestPermission();
+      }
+    };
+
+    const agendarNotificacoes = (dados) => {
+      const diasSemana = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+      const agora = new Date();
+
+      diasSemana.forEach((dia, i) => {
+        const hora = dados[dia];
+        if (!hora) return;
+
+        const [h, m] = hora.split(":").map(Number);
+        const hoje = new Date();
+        hoje.setDate(agora.getDate() + ((i - agora.getDay() + 7) % 7));
+        hoje.setHours(h, m, 0, 0);
+
+        const delay = hoje - agora;
+
+        if (delay > 0) {
+          setTimeout(() => {
+            mostrarNotificacao();
+          }, delay);
+        }
+      });
+    };
+
+    const mostrarNotificacao = () => {
+      if (Notification.permission === 'granted') {
+        const notif = new Notification("Dani, hora de tomar seu remédio!", {
+          body: "Clique para confirmar",
+        });
+
+        notif.onclick = () => {
+          const frase = frases[Math.floor(Math.random() * frases.length)];
+          mensagem.innerText = frase;
+        };
+      }
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const dados = Object.fromEntries(formData.entries());
+      salvarHorarios(dados);
+      await pedirPermissao();
+      agendarNotificacoes(dados);
+      mensagem.innerText = "Lembretes salvos com sucesso!";
+    });
+
+    window.onload = () => {
+      const dados = carregarHorarios();
+      Object.keys(dados).forEach((dia) => {
+        const input = form.elements[dia];
+        if (input) input.value = dados[dia];
+      });
+      agendarNotificacoes(dados);
+    };
+  </script>
+</body>
+</html>
